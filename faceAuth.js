@@ -228,11 +228,12 @@ const faceAuth = {
     faceapi.matchDimensions(this.canvasEl, displaySize);
     
     const uiInst = document.getElementById('liveness-instruction');
-    const history = []; const MAX_FRAMES = 15; let weakFramesCount = 0;
+    const history = []; const MAX_FRAMES = 5; let weakFramesCount = 0;
 
     const detectFrame = async () => {
       if (this.videoEl.paused || this.videoEl.ended) return;
-      const detection = await faceapi.detectSingleFace(this.videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
+      // Use inputSize: 160 instead of 224 for faster inference on low-end mobile devices
+      const detection = await faceapi.detectSingleFace(this.videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 })).withFaceLandmarks().withFaceDescriptor();
       const ctx = this.canvasEl.getContext('2d'); ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
 
       if (detection) {

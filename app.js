@@ -356,7 +356,7 @@ const app = {
   },
 
   async finalizeAttendance(score, liveness) {
-    document.getElementById('liveness-instruction').textContent = "Submitting...";
+    document.getElementById('liveness-instruction').textContent = "Face matched! Saving attendance to server, please wait...";
     faceAuth.stopCamera();
     document.getElementById('check-face').className = 'success';
     
