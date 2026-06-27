@@ -48,6 +48,7 @@ const faceAuth = {
     }
 
     const constraintsToTry = [
+      { video: { facingMode: { exact: preferredFacingMode } } },
       { video: { facingMode: { ideal: preferredFacingMode } } },
       { video: true },
       { video: { width: { ideal: 640 }, height: { ideal: 480 } } }
