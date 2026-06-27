@@ -307,11 +307,33 @@ const app = {
       } else {
         const deviceId = document.getElementById('camera-select-teacher').value;
         await faceAuth.startCamera('video-element', 'overlay-canvas', deviceId, 'user');
-        // The check-in validation loop runs implicitly or we can just let it restart via startVerificationSequence
+        
+        // Restart validation loop for teacher attendance
+        if (this.state && this.state.teacher && this.state.teacher.frontDescriptor) {
+          const descs = {
+            front: new Float32Array(JSON.parse(this.state.teacher.frontDescriptor)),
+            left: new Float32Array(JSON.parse(this.state.teacher.leftDescriptor)),
+            right: new Float32Array(JSON.parse(this.state.teacher.rightDescriptor))
+          };
+          faceAuth.beginPassiveValidationLoop(descs, this.state.settings.faceMatchThreshold);
+        }
       }
     } catch(err) {
       this.showToast("Failed to switch camera: " + err.message, "error");
     }
+  },
+
+  flipCamera(mode) {
+    const selectId = mode === 'reg' ? 'camera-select-reg' : 'camera-select-teacher';
+    const select = document.getElementById(selectId);
+    if (!select || select.options.length <= 1) return;
+    
+    let nextIndex = select.selectedIndex + 1;
+    if (nextIndex >= select.options.length) nextIndex = 0;
+    select.selectedIndex = nextIndex;
+    
+    // Trigger switch
+    this.switchCamera(mode);
   },
 
   async startVerificationSequence() {

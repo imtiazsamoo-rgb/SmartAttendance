@@ -296,3 +296,44 @@ body {
   margin-bottom: 1rem;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Visual Feedback: Scanner and Flip Camera */
+.scanner-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 2px solid rgba(0, 200, 83, 0.5);
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+.scanner-line {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(0, 200, 83, 0.8);
+  box-shadow: 0 0 10px rgba(0, 200, 83, 0.8), 0 0 20px rgba(0, 200, 83, 0.8);
+  animation: scan 2s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+}
+@keyframes scan {
+  0% { top: 0%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+.flip-camera-btn {
+  position: absolute;
+  bottom: 10px; right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px; height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  backdrop-filter: blur(4px);
+  transition: background 0.3s;
+}
+.flip-camera-btn:hover { background: rgba(0, 0, 0, 0.8); }
+.flip-camera-btn .material-icons-round { font-size: 28px; }

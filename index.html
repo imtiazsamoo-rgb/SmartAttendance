@@ -118,6 +118,10 @@
         <div class="camera-container" style="margin: 1rem 0;">
           <video id="video-reg" autoplay muted playsinline></video>
           <canvas id="overlay-reg"></canvas>
+          <div id="scanner-reg" class="scanner-overlay" style="display:none;"><div class="scanner-line"></div></div>
+          <button class="flip-camera-btn" onclick="app.flipCamera('reg')">
+            <span class="material-icons-round">flip_camera_ios</span>
+          </button>
           
           <!-- DEBUG PANEL -->
           <div id="debug-panel" style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.7); color:#0f0; padding:8px; font-size:10px; border-radius:4px; text-align:left; z-index:99; pointer-events:none;">
@@ -167,6 +171,10 @@
       <div class="camera-container">
         <video id="video-element" autoplay muted playsinline></video>
         <canvas id="overlay-canvas"></canvas>
+        <div id="scanner-teacher" class="scanner-overlay" style="display:none;"><div class="scanner-line"></div></div>
+        <button class="flip-camera-btn" onclick="app.flipCamera('teacher')">
+          <span class="material-icons-round">flip_camera_ios</span>
+        </button>
         <div class="camera-ui">
           <button class="btn-icon close-camera" onclick="app.closeCamera()"><span class="material-icons-round">close</span></button>
           <div class="instruction-box" id="liveness-instruction">Please look clearly at the camera</div>
@@ -208,10 +216,10 @@
 
   </main>
 
-  <script src="app.js?v=6"></script>
-  <script src="faceAuth.js?v=6"></script>
-  <script src="offlineDb.js?v=6"></script>
-  <script src="leaveModule.js?v=6"></script>
-  <script src="importWizard.js?v=6"></script>
+  <script src="app.js?v=7"></script>
+  <script src="faceAuth.js?v=7"></script>
+  <script src="offlineDb.js?v=7"></script>
+  <script src="leaveModule.js?v=7"></script>
+  <script src="importWizard.js?v=7"></script>
 </body>
 </html>

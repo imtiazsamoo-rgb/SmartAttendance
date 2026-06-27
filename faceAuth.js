@@ -144,6 +144,10 @@ const faceAuth = {
     const dbgDesc = document.getElementById('dbg-desc');
     const dbgApi = document.getElementById('dbg-api');
 
+    // Show scanner overlay
+    const scanner = document.getElementById('scanner-reg');
+    if (scanner) scanner.style.display = 'block';
+
     if(dbgModels) dbgModels.textContent = this.isModelsLoaded ? "Yes" : "No";
     if(dbgCamera) dbgCamera.textContent = this.stream ? "Yes" : "No";
     if(dbgStage) dbgStage.textContent = "front";
@@ -172,6 +176,7 @@ const faceAuth = {
         this.regState.stage = 'done'; uiInst.textContent = "Registration Complete!"; btnManual.style.display = 'none';
         if(dbgStage) dbgStage.textContent = "done";
         if(dbgApi) dbgApi.textContent = "Calling API...";
+        if(scanner) scanner.style.display = 'none';
         // Pass the object containing all 3 arrays instead of averaging
         setTimeout(() => app.completeRegistration(this.regState.captures), 800);
       }
@@ -181,7 +186,8 @@ const faceAuth = {
       if (this.videoEl.paused || this.videoEl.ended) return;
       
       try {
-        const detections = await faceapi.detectAllFaces(this.videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        // Use inputSize: 160 for faster detection on mobile during registration
+        const detections = await faceapi.detectAllFaces(this.videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 160 })).withFaceLandmarks().withFaceDescriptors();
         const ctx = this.canvasEl.getContext('2d'); ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
         
         // Always show manual capture button
@@ -229,6 +235,9 @@ const faceAuth = {
     faceapi.matchDimensions(this.canvasEl, displaySize);
     
     const uiInst = document.getElementById('liveness-instruction');
+    const scanner = document.getElementById('scanner-teacher');
+    if (scanner) scanner.style.display = 'block';
+
     const history = []; const MAX_FRAMES = 5; let weakFramesCount = 0;
 
     const detectFrame = async () => {
@@ -260,6 +269,7 @@ const faceAuth = {
             else if (varianceX > 100) uiInst.textContent = "Hold the camera steady.";
             else {
               uiInst.textContent = "Attendance Confirmed.";
+              if (scanner) scanner.style.display = 'none';
               setTimeout(() => app.finalizeAttendance(bestDistance, "PASSIVE_LIVENESS_OK"), 400);
               return; 
             }
