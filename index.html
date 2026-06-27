@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+  <title>BFS Smart Attendance</title>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    // Replace this with your actual Google Apps Script Web App /exec URL
+    window.GAS_WEB_APP_URL = "YOUR_WEB_APP_URL_HERE";
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./service-worker.js');
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.min.js"></script>
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-content">
+      <h1 class="logo">BFS <span>Attendance</span></h1>
+      <div>
+        <button class="btn outline-btn small-btn" style="padding:4px 8px; font-size:0.8rem;" onclick="app.showAdminLogin()">Admin</button>
+        <div id="network-status" class="status-badge online" style="display:inline-flex; margin-left:8px;">
+          <span class="material-icons-round">wifi</span>
+          <span class="status-text">Online</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="app-container">
+    
+    <!-- Loading -->
+    <section id="view-loading" class="view active">
+      <div class="loader-container"><div class="spinner"></div><p>Initializing...</p></div>
+    </section>
+
+    <!-- Teacher Login -->
+    <section id="view-login" class="view">
+      <div class="card login-card">
+        <h2>Teacher Login</h2>
+        <p class="subtitle">Enter your Teacher ID to continue</p>
+        <div class="input-group">
+          <span class="material-icons-round icon">badge</span>
+          <input type="text" id="teacher-id-input" placeholder="e.g., TCH-1001" autocomplete="off">
+        </div>
+        <button id="btn-login" class="btn primary-btn" onclick="app.login()">Continue <span class="material-icons-round">arrow_forward</span></button>
+      </div>
+    </section>
+
+    <!-- Admin Login -->
+    <section id="view-admin-login" class="view">
+      <div class="card login-card">
+        <h2>Admin Portal</h2>
+        <p class="subtitle">Authorized personnel only</p>
+        <div class="input-group">
+          <span class="material-icons-round icon">person</span>
+          <input type="text" id="admin-id-input" placeholder="Admin ID">
+        </div>
+        <div class="input-group">
+          <span class="material-icons-round icon">lock</span>
+          <input type="password" id="admin-pass-input" placeholder="Password / PIN">
+        </div>
+        <button id="btn-admin-login" class="btn primary-btn" onclick="app.adminLogin()">Login</button>
+        <button class="btn outline-btn" style="margin-top:1rem;" onclick="app.showView('view-login')">Back to Teacher Login</button>
+      </div>
+    </section>
+
+    <!-- Admin Face Management -->
+    <section id="view-admin-dashboard" class="view">
+      <div class="dashboard-header">
+        <div>
+          <h2>Face Management</h2>
+          <p class="text-secondary" id="admin-role-display">Role</p>
+        </div>
+        <button class="btn outline-btn" style="width:auto; padding:0.5rem 1rem;" onclick="app.loadAdminData()"><span class="material-icons-round">refresh</span></button>
+      </div>
+      
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div class="data-table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Teacher</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-teacher-list">
+              <!-- Injected -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:1rem; flex-wrap:wrap;">
+        <button class="btn primary-btn" onclick="app.loadPrincipalLeaves()">Manage Leaves</button>
+        <button id="btn-import-wizard" class="btn primary-btn" style="background:#6366f1;" onclick="app.importInit()">Import Teachers</button>
+        <button class="btn outline-btn" onclick="app.adminLogout()">Logout Admin</button>
+      </div>
+    </section>
+
+    <!-- Admin Registration Camera -->
+    <section id="view-registration" class="view">
+      <div class="card">
+        <h2>Registering <span id="reg-target-name">Teacher</span></h2>
+        <p style="text-align:center; color: var(--bfs-primary);" id="reg-target-name"></p>
+        <div style="margin-top: 1rem;">
+          <select id="camera-select-reg" class="input-field" onchange="app.switchCamera('reg')">
+            <option value="">Default Camera</option>
+          </select>
+        </div>
+        <div class="camera-container" style="margin: 1rem 0;">
+          <video id="video-reg" autoplay muted playsinline></video>
+          <canvas id="overlay-reg"></canvas>
+          <div class="camera-ui">
+            <div class="instruction-box" id="reg-instruction">Look straight</div>
+            <button id="btn-manual-capture" class="btn outline-btn" style="display:none; background:rgba(255,255,255,0.9); border:none; margin-top:auto;" onclick="faceAuth.forceManualCapture()">Capture Manually</button>
+          </div>
+        </div>
+        
+        <ul class="check-list">
+          <li id="reg-front" class="pending"><span class="material-icons-round">face</span> Front Face</li>
+          <li id="reg-left" class="pending"><span class="material-icons-round">turn_left</span> Slight Left</li>
+          <li id="reg-right" class="pending"><span class="material-icons-round">turn_right</span> Slight Right</li>
+        </ul>
+        <button class="btn outline-btn" style="margin-top:1rem;" onclick="app.cancelRegistration()">Cancel</button>
+      </div>
+    </section>
+
+    <!-- Teacher Dashboard -->
+    <section id="view-dashboard" class="view">
+      <div class="user-greeting">
+        <h2>Welcome, <span id="display-teacher-name">Teacher</span></h2>
+        <p id="display-school-name">School Name</p>
+      </div>
+      <div class="action-grid">
+        <button class="action-card check-in" onclick="app.openCamera('check-in')"><span class="material-icons-round">login</span><h3>Check In</h3></button>
+        <button class="action-card check-out" onclick="app.openCamera('check-out')"><span class="material-icons-round">logout</span><h3>Check Out</h3></button>
+        <button class="action-card check-in" style="background:#e8f4fd; color:#3498db; grid-column: span 2;" onclick="app.loadTeacherLeaves()"><span class="material-icons-round">event_note</span><h3>Leave Management</h3></button>
+      </div>
+    </section>
+
+    <!-- Daily Attendance Camera -->
+    <section id="view-camera" class="view">
+      <div style="padding: 1rem; background: #fff; border-bottom: 1px solid #eee;">
+        <select id="camera-select-teacher" class="input-field" onchange="app.switchCamera('teacher')">
+          <option value="">Default Camera</option>
+        </select>
+      </div>
+      <div class="camera-container">
+        <video id="video-element" autoplay muted playsinline></video>
+        <canvas id="overlay-canvas"></canvas>
+        <div class="camera-ui">
+          <button class="btn-icon close-camera" onclick="app.closeCamera()"><span class="material-icons-round">close</span></button>
+          <div class="instruction-box" id="liveness-instruction">Please look clearly at the camera</div>
+        </div>
+      </div>
+      <div class="verification-status card">
+        <h3 id="verify-type-title">Verifying Check In</h3>
+        <ul class="check-list">
+          <li id="check-gps" class="pending"><span class="material-icons-round">place</span> Location Verified</li>
+          <li id="check-face" class="pending"><span class="material-icons-round">how_to_reg</span> Verification In Progress</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Camera Error Guide -->
+    <section id="view-camera-error" class="view">
+      <div class="card" style="text-align:center;">
+        <span class="material-icons-round" style="font-size: 4rem; color: #e74c3c;">videocam_off</span>
+        <h2 style="margin-top: 1rem; color: #e74c3c;">Camera Access Denied</h2>
+        <p id="camera-error-text" style="color: var(--text-secondary); margin: 1rem 0; font-weight: 500;"></p>
+        
+        <div style="background: #fff3cd; color: #856404; padding: 1rem; border-radius: var(--radius-md); text-align: left; margin-bottom: 1.5rem; font-size: 0.95rem;">
+          <strong>Why is this happening?</strong>
+          <p style="margin-top: 0.5rem; margin-bottom: 0.5rem;">Google Apps Script blocks camera access by default when running via the standard <code>/exec</code> link because it runs inside a restricted iframe.</p>
+          <strong>How to fix this:</strong>
+          <ol style="margin-top: 0.5rem; padding-left: 1.5rem; line-height: 1.6;">
+            <li>Click the <strong>Open Camera Mode</strong> button below to open the app directly without the Google wrapper.</li>
+            <li>If it still fails, check the <strong>Lock icon (🔒)</strong> in your address bar and allow the camera.</li>
+            <li>Check your <strong>Windows Camera Privacy Settings</strong> to ensure "Allow desktop apps to access your camera" is ON.</li>
+          </ol>
+        </div>
+        
+        <button class="btn primary-btn" onclick="window.open(window.location.href, '_blank')" style="width: 100%; margin-bottom: 1rem; background-color: #27ae60;">
+          <span class="material-icons-round" style="vertical-align: middle;">open_in_new</span> Open Camera Mode
+        </button>
+        <button class="btn outline-btn" onclick="app.showView(app.state.adminSession ? 'view-admin-dashboard' : 'view-dashboard')" style="width: 100%;">Cancel</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+  <script src="faceAuth.js"></script>
+  <script src="offlineDb.js"></script>
+  <script src="leaveModule.js"></script>
+  <script src="importWizard.js"></script>
+</body>
+</html>
