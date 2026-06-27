@@ -258,8 +258,7 @@ const app = {
       if (res.status === 'success') {
         if (dbgApi) dbgApi.textContent = "Success";
         this.showToast("Face registered successfully!");
-        this.loadAdminData();
-        this.showView('view-admin-dashboard');
+        setTimeout(() => window.location.reload(true), 2000);
       } else {
         if (dbgApi) dbgApi.textContent = "Error: " + res.message;
         this.showToast(res.message || "Registration failed", "error");
@@ -395,17 +394,19 @@ const app = {
         const res = await this.callBackend('submitAttendance', record);
         if (res.status === 'success') {
           this.showToast(res.data.message || "Attendance recorded successfully", "success");
+          setTimeout(() => window.location.reload(true), 2000);
         } else { 
-          // Show friendly duplicate message if thrown from backend
           this.showToast(res.message, "error"); 
         }
       } catch(e) { 
         offlineDb.saveRecord(record); 
         this.showToast("Network error. Saved offline.", "success");
+        setTimeout(() => window.location.reload(true), 2000);
       }
     } else {
       offlineDb.saveRecord(record);
       this.showToast("Saved offline. Will sync when internet is restored.", "success");
+      setTimeout(() => window.location.reload(true), 2000);
     }
     
     this.showView('view-dashboard');

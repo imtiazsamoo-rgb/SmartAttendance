@@ -133,7 +133,7 @@ const faceAuth = {
       console.error("matchDimensions error:", e);
     }
 
-    const uiInst = document.getElementById('reg-instruction');
+    const uiInst = document.getElementById('instruction-overlay-reg');
     const btnManual = document.getElementById('btn-manual-capture');
     
     // Debug elements
@@ -144,9 +144,23 @@ const faceAuth = {
     const dbgDesc = document.getElementById('dbg-desc');
     const dbgApi = document.getElementById('dbg-api');
 
-    // Show scanner overlay
-    const scanner = document.getElementById('scanner-reg');
-    if (scanner) scanner.style.display = 'block';
+    // Show progress UI
+    const progressContainer = document.getElementById('progress-container-reg');
+    const progressBar = document.getElementById('progress-bar-reg');
+    const progressText = document.getElementById('progress-text-reg');
+    if (progressContainer) progressContainer.style.display = 'block';
+
+    const updateProgress = (percent) => {
+      if (progressBar) {
+        const offset = 251 - (251 * percent) / 100;
+        progressBar.style.strokeDashoffset = offset;
+      }
+      if (progressText) {
+        progressText.textContent = `${percent}%`;
+        if (percent === 100) progressText.style.color = '#00e676';
+      }
+    };
+    updateProgress(0);
 
     if(dbgModels) dbgModels.textContent = this.isModelsLoaded ? "Yes" : "No";
     if(dbgCamera) dbgCamera.textContent = this.stream ? "Yes" : "No";
@@ -170,13 +184,14 @@ const faceAuth = {
       
       if(dbgDesc) dbgDesc.textContent = "Yes (Stage: " + stage + ")";
       
-      if (stage === 'front') { this.regState.stage = 'left'; uiInst.textContent = "Turn slightly left"; if(dbgStage) dbgStage.textContent = "left"; } 
-      else if (stage === 'left') { this.regState.stage = 'right'; uiInst.textContent = "Turn slightly right"; if(dbgStage) dbgStage.textContent = "right"; } 
+      if (stage === 'front') { this.regState.stage = 'left'; if(uiInst) uiInst.textContent = "Turn slightly left"; updateProgress(33); if(dbgStage) dbgStage.textContent = "left"; } 
+      else if (stage === 'left') { this.regState.stage = 'right'; if(uiInst) uiInst.textContent = "Turn slightly right"; updateProgress(66); if(dbgStage) dbgStage.textContent = "right"; } 
       else if (stage === 'right') {
-        this.regState.stage = 'done'; uiInst.textContent = "Registration Complete!"; btnManual.style.display = 'none';
+        this.regState.stage = 'done'; updateProgress(100);
+        if(uiInst) uiInst.textContent = "Registration Complete!"; 
+        if(btnManual) btnManual.style.display = 'none';
         if(dbgStage) dbgStage.textContent = "done";
         if(dbgApi) dbgApi.textContent = "Calling API...";
-        if(scanner) scanner.style.display = 'none';
         // Pass the object containing all 3 arrays instead of averaging
         setTimeout(() => app.completeRegistration(this.regState.captures), 800);
       }
@@ -197,10 +212,10 @@ const faceAuth = {
           if(dbgFace) dbgFace.textContent = "Yes (" + detections.length + ")";
           const resized = faceapi.resizeResults(detections, displaySize); faceapi.draw.drawDetections(this.canvasEl, resized);
           if (this.regState.forceCaptureFlag) {
-            if (detections.length > 1) { uiInst.textContent = "Multiple faces detected!"; this.regState.forceCaptureFlag = false; } 
+            if (detections.length > 1) { if(uiInst) uiInst.textContent = "Multiple faces detected!"; this.regState.forceCaptureFlag = false; } 
             else {
               const det = detections[0];
-              if (det.detection.box.width < 100) { uiInst.textContent = "Move closer."; this.regState.forceCaptureFlag = false; } 
+              if (det.detection.box.width < 100) { if(uiInst) uiInst.textContent = "Move closer."; this.regState.forceCaptureFlag = false; } 
               else if (!det.descriptor) { this.regState.forceCaptureFlag = false; } 
               else processCapture(det.descriptor);
             }
@@ -216,7 +231,7 @@ const faceAuth = {
           }
         } else {
           if(dbgFace) dbgFace.textContent = "No";
-          if (this.regState.forceCaptureFlag) { uiInst.textContent = "No face."; this.regState.forceCaptureFlag = false; }
+          if (this.regState.forceCaptureFlag) { if(uiInst) uiInst.textContent = "No face."; this.regState.forceCaptureFlag = false; }
         }
       } catch (err) {
         console.error("detectFrame error:", err);
@@ -234,9 +249,24 @@ const faceAuth = {
     const displaySize = { width: this.videoEl.videoWidth, height: this.videoEl.videoHeight };
     faceapi.matchDimensions(this.canvasEl, displaySize);
     
-    const uiInst = document.getElementById('liveness-instruction');
-    const scanner = document.getElementById('scanner-teacher');
-    if (scanner) scanner.style.display = 'block';
+    const uiInst = document.getElementById('instruction-overlay-teacher');
+    
+    const progressContainer = document.getElementById('progress-container-teacher');
+    const progressBar = document.getElementById('progress-bar-teacher');
+    const progressText = document.getElementById('progress-text-teacher');
+    if (progressContainer) progressContainer.style.display = 'block';
+
+    const updateProgress = (percent) => {
+      if (progressBar) {
+        const offset = 251 - (251 * percent) / 100;
+        progressBar.style.strokeDashoffset = offset;
+      }
+      if (progressText) {
+        progressText.textContent = `${percent}%`;
+        if (percent === 100) progressText.style.color = '#00e676';
+      }
+    };
+    updateProgress(0);
 
     const history = []; const MAX_FRAMES = 5; let weakFramesCount = 0;
 
@@ -255,28 +285,41 @@ const faceAuth = {
 
         if (bestDistance > threshold) {
           weakFramesCount++;
-          if (weakFramesCount > 10) uiInst.textContent = "Please look clearly at the camera and try again.";
+          if (weakFramesCount > 10) {
+            if(uiInst) uiInst.textContent = "Please look clearly at the camera and try again.";
+            updateProgress(0);
+          }
         } else {
           const noseTip = detection.landmarks.getNose()[3];
           history.push({ x: noseTip.x, y: noseTip.y });
           if (history.length > MAX_FRAMES) history.shift();
           
+          updateProgress(Math.floor((history.length / MAX_FRAMES) * 100));
+
           if (history.length === MAX_FRAMES) {
             const sumX = history.reduce((acc, val) => acc + val.x, 0); const meanX = sumX / MAX_FRAMES;
             const varianceX = history.reduce((acc, val) => acc + Math.pow(val.x - meanX, 2), 0) / MAX_FRAMES;
             
-            if (varianceX < 0.2) uiInst.textContent = "Please look clearly at the camera and try again.";
-            else if (varianceX > 100) uiInst.textContent = "Hold the camera steady.";
+            if (varianceX < 0.2) {
+              if(uiInst) uiInst.textContent = "Please look clearly at the camera and try again.";
+              history.length = 0; updateProgress(0);
+            }
+            else if (varianceX > 100) {
+              if(uiInst) uiInst.textContent = "Hold the camera steady.";
+              history.length = 0; updateProgress(0);
+            }
             else {
-              uiInst.textContent = "Attendance Confirmed.";
-              if (scanner) scanner.style.display = 'none';
+              if(uiInst) uiInst.textContent = "Attendance Confirmed.";
+              updateProgress(100);
               setTimeout(() => app.finalizeAttendance(bestDistance, "PASSIVE_LIVENESS_OK"), 400);
               return; 
             }
           }
           weakFramesCount = 0;
         }
-      } else uiInst.textContent = "Please look clearly at the camera.";
+      } else {
+        if(uiInst) uiInst.textContent = "Please look clearly at the camera.";
+      }
       this.detectionLoop = requestAnimationFrame(detectFrame);
     };
     detectFrame();

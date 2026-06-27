@@ -7,7 +7,7 @@
   <title>BFS Smart Attendance</title>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=9">
   <link rel="manifest" href="manifest.json">
   <script>
     // Replace this with your actual Google Apps Script Web App /exec URL
@@ -118,10 +118,20 @@
         <div class="camera-container" style="margin: 1rem 0;">
           <video id="video-reg" autoplay muted playsinline></video>
           <canvas id="overlay-reg"></canvas>
-          <div id="scanner-reg" class="scanner-overlay" style="display:none;"><div class="scanner-line"></div></div>
-          <button class="flip-camera-btn" onclick="app.flipCamera('reg')">
-            <span class="material-icons-round">flip_camera_ios</span>
-          </button>
+            
+            <div id="instruction-overlay-reg" class="camera-instruction-overlay">Loading...</div>
+
+            <div id="progress-container-reg" class="progress-circle-container" style="display:none;">
+              <svg viewBox="0 0 100 100">
+                <circle class="bg" cx="50" cy="50" r="40"></circle>
+                <circle class="progress" id="progress-bar-reg" cx="50" cy="50" r="40"></circle>
+              </svg>
+              <div class="progress-text" id="progress-text-reg">0%</div>
+            </div>
+
+            <button class="flip-camera-btn" onclick="app.flipCamera('reg')">
+              <span class="material-icons-round">flip_camera_ios</span>
+            </button>
           
           <!-- DEBUG PANEL -->
           <div id="debug-panel" style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.7); color:#0f0; padding:8px; font-size:10px; border-radius:4px; text-align:left; z-index:99; pointer-events:none;">
@@ -133,10 +143,11 @@
             <div>API Status: <span id="dbg-api">Waiting</span></div>
           </div>
 
-          <div class="camera-ui">
-            <div class="instruction-box" id="reg-instruction">Look straight</div>
-            <button id="btn-manual-capture" class="btn outline-btn" style="display:block; background:rgba(255,255,255,0.9); border:none; margin-top:auto;" onclick="faceAuth.forceManualCapture()">Capture Manually</button>
-          </div>
+          <div class="form-group">
+          <!-- The instruction overlay is now inside the camera container -->
+          <button id="btn-manual-capture" class="btn outline-btn" style="width:100%; display:none; margin-bottom: 10px;" onclick="faceAuth.forceManualCapture()">
+            <span class="material-icons-round icon">camera</span> Capture Manually
+          </button>
         </div>
         
         <ul class="check-list">
@@ -168,18 +179,27 @@
           <option value="">Default Camera</option>
         </select>
       </div>
-      <div class="camera-container">
-        <video id="video-element" autoplay muted playsinline></video>
-        <canvas id="overlay-canvas"></canvas>
-        <div id="scanner-teacher" class="scanner-overlay" style="display:none;"><div class="scanner-line"></div></div>
-        <button class="flip-camera-btn" onclick="app.flipCamera('teacher')">
-          <span class="material-icons-round">flip_camera_ios</span>
-        </button>
-        <div class="camera-ui">
-          <button class="btn-icon close-camera" onclick="app.closeCamera()"><span class="material-icons-round">close</span></button>
-          <div class="instruction-box" id="liveness-instruction">Please look clearly at the camera</div>
+        <div class="camera-container">
+          <video id="video-element" autoplay muted playsinline></video>
+          <canvas id="overlay-canvas"></canvas>
+
+          <div id="instruction-overlay-teacher" class="camera-instruction-overlay">Please look clearly at the camera</div>
+
+          <div id="progress-container-teacher" class="progress-circle-container" style="display:none;">
+            <svg viewBox="0 0 100 100">
+              <circle class="bg" cx="50" cy="50" r="40"></circle>
+              <circle class="progress" id="progress-bar-teacher" cx="50" cy="50" r="40"></circle>
+            </svg>
+            <div class="progress-text" id="progress-text-teacher">0%</div>
+          </div>
+
+          <button class="flip-camera-btn" onclick="app.flipCamera('teacher')">
+            <span class="material-icons-round">flip_camera_ios</span>
+          </button>
+          <div class="camera-ui">
+            <button class="btn-icon close-camera" onclick="app.closeCamera()"><span class="material-icons-round">close</span></button>
+          </div>
         </div>
-      </div>
       <div class="verification-status card">
         <h3 id="verify-type-title">Verifying Check In</h3>
         <ul class="check-list">
@@ -216,10 +236,10 @@
 
   </main>
 
-  <script src="app.js?v=8"></script>
-  <script src="faceAuth.js?v=8"></script>
-  <script src="offlineDb.js?v=8"></script>
-  <script src="leaveModule.js?v=8"></script>
-  <script src="importWizard.js?v=8"></script>
+  <script src="app.js?v=9"></script>
+  <script src="faceAuth.js?v=9"></script>
+  <script src="offlineDb.js?v=9"></script>
+  <script src="leaveModule.js?v=9"></script>
+  <script src="importWizard.js?v=9"></script>
 </body>
 </html>
