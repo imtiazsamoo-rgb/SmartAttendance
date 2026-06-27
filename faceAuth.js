@@ -22,8 +22,8 @@ const faceAuth = {
     }
   },
 
-  async startCamera(videoId, canvasId, deviceId = null) {
-    console.log("[Camera Audit] Starting startCamera. videoId:", videoId, "deviceId:", deviceId);
+  async startCamera(videoId, canvasId, deviceId = null, preferredFacingMode = "user") {
+    console.log("[Camera Audit] Starting startCamera. videoId:", videoId, "deviceId:", deviceId, "facingMode:", preferredFacingMode);
     if (!this.isModelsLoaded) throw new Error("Models loading.");
     
     // Stop existing stream if any to prevent blocking
@@ -48,8 +48,8 @@ const faceAuth = {
     }
 
     const constraintsToTry = [
+      { video: { facingMode: { ideal: preferredFacingMode } } },
       { video: true },
-      { video: { facingMode: "user" } },
       { video: { width: { ideal: 640 }, height: { ideal: 480 } } }
     ];
 
@@ -120,10 +120,33 @@ const faceAuth = {
 
   beginRegistrationLoop() {
     const displaySize = { width: this.videoEl.videoWidth, height: this.videoEl.videoHeight };
-    faceapi.matchDimensions(this.canvasEl, displaySize);
+    if (displaySize.width === 0 || displaySize.height === 0) {
+      console.warn("Video dimensions are 0. Using fallback 640x480.");
+      displaySize.width = 640;
+      displaySize.height = 480;
+    }
+    
+    try {
+      faceapi.matchDimensions(this.canvasEl, displaySize);
+    } catch(e) {
+      console.error("matchDimensions error:", e);
+    }
+
     const uiInst = document.getElementById('reg-instruction');
     const btnManual = document.getElementById('btn-manual-capture');
     
+    // Debug elements
+    const dbgModels = document.getElementById('dbg-models');
+    const dbgCamera = document.getElementById('dbg-camera');
+    const dbgFace = document.getElementById('dbg-face');
+    const dbgStage = document.getElementById('dbg-stage');
+    const dbgDesc = document.getElementById('dbg-desc');
+    const dbgApi = document.getElementById('dbg-api');
+
+    if(dbgModels) dbgModels.textContent = this.isModelsLoaded ? "Yes" : "No";
+    if(dbgCamera) dbgCamera.textContent = this.stream ? "Yes" : "No";
+    if(dbgStage) dbgStage.textContent = "front";
+
     this.regState.stage = 'front'; this.regState.captures = { front: null, left: null, right: null };
     this.regState.stageStartTime = Date.now(); this.regState.forceCaptureFlag = false;
     uiInst.textContent = "Look straight";
@@ -140,10 +163,14 @@ const faceAuth = {
       this.regState.forceCaptureFlag = false;
       this.regState.stageStartTime = Date.now();
       
-      if (stage === 'front') { this.regState.stage = 'left'; uiInst.textContent = "Turn slightly left"; } 
-      else if (stage === 'left') { this.regState.stage = 'right'; uiInst.textContent = "Turn slightly right"; } 
+      if(dbgDesc) dbgDesc.textContent = "Yes (Stage: " + stage + ")";
+      
+      if (stage === 'front') { this.regState.stage = 'left'; uiInst.textContent = "Turn slightly left"; if(dbgStage) dbgStage.textContent = "left"; } 
+      else if (stage === 'left') { this.regState.stage = 'right'; uiInst.textContent = "Turn slightly right"; if(dbgStage) dbgStage.textContent = "right"; } 
       else if (stage === 'right') {
         this.regState.stage = 'done'; uiInst.textContent = "Registration Complete!"; btnManual.style.display = 'none';
+        if(dbgStage) dbgStage.textContent = "done";
+        if(dbgApi) dbgApi.textContent = "Calling API...";
         // Pass the object containing all 3 arrays instead of averaging
         setTimeout(() => app.completeRegistration(this.regState.captures), 800);
       }
@@ -151,33 +178,43 @@ const faceAuth = {
 
     const detectFrame = async () => {
       if (this.videoEl.paused || this.videoEl.ended) return;
-      const detections = await faceapi.detectAllFaces(this.videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-      const ctx = this.canvasEl.getContext('2d'); ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
       
-      if (Date.now() - this.regState.stageStartTime > 5000) btnManual.style.display = 'block';
-      else btnManual.style.display = 'none';
+      try {
+        const detections = await faceapi.detectAllFaces(this.videoEl, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+        const ctx = this.canvasEl.getContext('2d'); ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height);
+        
+        // Always show manual capture button
+        if (btnManual) btnManual.style.display = 'block';
 
-      if (detections && detections.length > 0) {
-        const resized = faceapi.resizeResults(detections, displaySize); faceapi.draw.drawDetections(this.canvasEl, resized);
-        if (this.regState.forceCaptureFlag) {
-          if (detections.length > 1) { uiInst.textContent = "Multiple faces detected!"; this.regState.forceCaptureFlag = false; } 
-          else {
-            const det = detections[0];
-            if (det.detection.box.width < 100) { uiInst.textContent = "Move closer."; this.regState.forceCaptureFlag = false; } 
-            else if (!det.descriptor) { this.regState.forceCaptureFlag = false; } 
-            else processCapture(det.descriptor);
+        if (detections && detections.length > 0) {
+          if(dbgFace) dbgFace.textContent = "Yes (" + detections.length + ")";
+          const resized = faceapi.resizeResults(detections, displaySize); faceapi.draw.drawDetections(this.canvasEl, resized);
+          if (this.regState.forceCaptureFlag) {
+            if (detections.length > 1) { uiInst.textContent = "Multiple faces detected!"; this.regState.forceCaptureFlag = false; } 
+            else {
+              const det = detections[0];
+              if (det.detection.box.width < 100) { uiInst.textContent = "Move closer."; this.regState.forceCaptureFlag = false; } 
+              else if (!det.descriptor) { this.regState.forceCaptureFlag = false; } 
+              else processCapture(det.descriptor);
+            }
+          } else {
+            if (detections.length === 1) {
+              const det = detections[0]; const ratio = (det.landmarks.getNose()[0].x - det.landmarks.getJawOutline()[0].x) / ((det.landmarks.getJawOutline()[16].x - det.landmarks.getNose()[0].x) || 1);
+              let isAngleMet = false; const stage = this.regState.stage;
+              if (stage === 'front' && ratio > 0.6 && ratio < 1.4) isAngleMet = true;
+              if (stage === 'left' && ratio > 1.2) isAngleMet = true;
+              if (stage === 'right' && ratio < 0.8) isAngleMet = true;
+              if (isAngleMet && det.descriptor) processCapture(det.descriptor);
+            }
           }
         } else {
-          if (detections.length === 1) {
-            const det = detections[0]; const ratio = (det.landmarks.getNose()[0].x - det.landmarks.getJawOutline()[0].x) / ((det.landmarks.getJawOutline()[16].x - det.landmarks.getNose()[0].x) || 1);
-            let isAngleMet = false; const stage = this.regState.stage;
-            if (stage === 'front' && ratio > 0.6 && ratio < 1.4) isAngleMet = true;
-            if (stage === 'left' && ratio > 1.2) isAngleMet = true;
-            if (stage === 'right' && ratio < 0.8) isAngleMet = true;
-            if (isAngleMet && det.descriptor) processCapture(det.descriptor);
-          }
+          if(dbgFace) dbgFace.textContent = "No";
+          if (this.regState.forceCaptureFlag) { uiInst.textContent = "No face."; this.regState.forceCaptureFlag = false; }
         }
-      } else if (this.regState.forceCaptureFlag) { uiInst.textContent = "No face."; this.regState.forceCaptureFlag = false; }
+      } catch (err) {
+        console.error("detectFrame error:", err);
+        if(dbgFace) dbgFace.textContent = "Error: " + err.message;
+      }
       this.detectionLoop = requestAnimationFrame(detectFrame);
     };
     detectFrame();

@@ -221,7 +221,7 @@ const app = {
     document.getElementById('reg-target-name').textContent = tName;
     this.showView('view-registration');
     try {
-      await faceAuth.startCamera('video-reg', 'overlay-reg');
+      await faceAuth.startCamera('video-reg', 'overlay-reg', null, 'environment');
       await this.loadCameras('camera-select-reg');
       faceAuth.beginRegistrationLoop();
     } catch(err) { 
@@ -242,22 +242,32 @@ const app = {
 
   async completeRegistration(descriptorsObj) {
     document.getElementById('reg-instruction').textContent = "Saving profile...";
+    const dbgApi = document.getElementById('dbg-api');
+    if (dbgApi) dbgApi.textContent = "Calling API...";
     faceAuth.stopCamera();
     
-    const res = await this.callBackend('registerFace', {
-      adminId: this.state.adminSession.adminId,
-      adminToken: this.state.adminSession.token,
-      teacherId: this.state.regTarget.id,
-      frontDescriptor: JSON.stringify(Array.from(descriptorsObj.front)),
-      leftDescriptor: JSON.stringify(Array.from(descriptorsObj.left)),
-      rightDescriptor: JSON.stringify(Array.from(descriptorsObj.right))
-    });
-
-    if (res.status === 'success') {
-      this.showToast("Registration complete!", "success");
-      this.loadAdminData();
-    } else {
-      this.showToast("Failed to save registration: " + res.message);
+    try {
+      const res = await this.callBackend('registerFace', {
+        adminId: this.state.adminSession.adminId,
+        adminToken: this.state.adminSession.token,
+        teacherId: this.state.regTarget.id,
+        frontDescriptor: JSON.stringify(Array.from(descriptorsObj.front)),
+        leftDescriptor: JSON.stringify(Array.from(descriptorsObj.left)),
+        rightDescriptor: JSON.stringify(Array.from(descriptorsObj.right))
+      });
+      if (res.status === 'success') {
+        if (dbgApi) dbgApi.textContent = "Success";
+        this.showToast("Face registered successfully!");
+        this.loadAdminData();
+        this.showView('view-admin-dashboard');
+      } else {
+        if (dbgApi) dbgApi.textContent = "Error: " + res.message;
+        this.showToast(res.message || "Registration failed", "error");
+        this.showView('view-admin-dashboard');
+      }
+    } catch (e) {
+      if (dbgApi) dbgApi.textContent = "Exception: " + e.message;
+      this.showToast("Network error: " + e.message, "error");
       this.showView('view-admin-dashboard');
     }
   },
@@ -292,11 +302,11 @@ const app = {
     try {
       if (mode === 'reg') {
         const deviceId = document.getElementById('camera-select-reg').value;
-        await faceAuth.startCamera('video-reg', 'overlay-reg', deviceId);
+        await faceAuth.startCamera('video-reg', 'overlay-reg', deviceId, 'environment');
         faceAuth.beginRegistrationLoop();
       } else {
         const deviceId = document.getElementById('camera-select-teacher').value;
-        await faceAuth.startCamera('video-element', 'overlay-canvas', deviceId);
+        await faceAuth.startCamera('video-element', 'overlay-canvas', deviceId, 'user');
         // The check-in validation loop runs implicitly or we can just let it restart via startVerificationSequence
       }
     } catch(err) {
@@ -311,7 +321,7 @@ const app = {
       document.getElementById('check-gps').className = 'success';
       
       document.getElementById('liveness-instruction').textContent = "Please look clearly at the camera";
-      await faceAuth.startCamera('video-element', 'overlay-canvas');
+      await faceAuth.startCamera('video-element', 'overlay-canvas', null, 'user');
       await this.loadCameras('camera-select-teacher');
       
       const descs = {
@@ -758,6 +768,7 @@ const app = {
         const payload = JSON.stringify({ action: action, data: data });
         const response = await fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
+          redirect: 'follow', // Explicitly follow GAS 302 redirects
           // CRITICAL: Using text/plain prevents the browser from sending a CORS preflight OPTIONS request,
           // which Google Apps Script doPost() cannot handle natively.
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },

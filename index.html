@@ -118,9 +118,20 @@
         <div class="camera-container" style="margin: 1rem 0;">
           <video id="video-reg" autoplay muted playsinline></video>
           <canvas id="overlay-reg"></canvas>
+          
+          <!-- DEBUG PANEL -->
+          <div id="debug-panel" style="position:absolute; top:5px; left:5px; background:rgba(0,0,0,0.7); color:#0f0; padding:8px; font-size:10px; border-radius:4px; text-align:left; z-index:99; pointer-events:none;">
+            <div>Models Loaded: <span id="dbg-models">No</span></div>
+            <div>Camera Started: <span id="dbg-camera">No</span></div>
+            <div>Face Detected: <span id="dbg-face">No</span></div>
+            <div>Current Stage: <span id="dbg-stage">Pending</span></div>
+            <div>Descriptor: <span id="dbg-desc">No</span></div>
+            <div>API Status: <span id="dbg-api">Waiting</span></div>
+          </div>
+
           <div class="camera-ui">
             <div class="instruction-box" id="reg-instruction">Look straight</div>
-            <button id="btn-manual-capture" class="btn outline-btn" style="display:none; background:rgba(255,255,255,0.9); border:none; margin-top:auto;" onclick="faceAuth.forceManualCapture()">Capture Manually</button>
+            <button id="btn-manual-capture" class="btn outline-btn" style="display:block; background:rgba(255,255,255,0.9); border:none; margin-top:auto;" onclick="faceAuth.forceManualCapture()">Capture Manually</button>
           </div>
         </div>
         
@@ -197,10 +208,10 @@
 
   </main>
 
-  <script src="app.js"></script>
-  <script src="faceAuth.js"></script>
-  <script src="offlineDb.js"></script>
-  <script src="leaveModule.js"></script>
-  <script src="importWizard.js"></script>
+  <script src="app.js?v=4"></script>
+  <script src="faceAuth.js?v=4"></script>
+  <script src="offlineDb.js?v=4"></script>
+  <script src="leaveModule.js?v=4"></script>
+  <script src="importWizard.js?v=4"></script>
 </body>
 </html>
